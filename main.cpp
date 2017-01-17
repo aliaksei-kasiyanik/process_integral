@@ -8,7 +8,7 @@
 double calculate_trapezoid(double step, double a, double b);
 
 double f(double x) {
-    return -x * x;
+    return x;
 }
 
 int main(int argc, char *argv[]) {
@@ -33,12 +33,6 @@ int main(int argc, char *argv[]) {
     if (pipe(pipefds) == -1) {
         perror("pipe");
         return 1;
-    }
-
-    sem_t mutex;
-    if (sem_init(&mutex, 1, 1) < 0) {
-        perror("sem_init");
-        exit(0);
     }
 
     pid_t child_pid[PROCESS_COUNT];
@@ -73,9 +67,9 @@ int main(int argc, char *argv[]) {
             double sum = calculate_trapezoid(proc_a, proc_b, STEP);
             printf("PART_SUM: %f\n", sum);
 
-            sem_wait(&mutex);
             write(pipefds[1], &sum, sizeof(double));
-            sem_post(&mutex);
+
+            close(pipefds[1]);
 
             return 0;
         } else { // if error
@@ -96,6 +90,8 @@ int main(int argc, char *argv[]) {
         result += part_result;
     }
 
+    close(pipefds[0]);
+
     printf("RESULT: %f\n", result);
 
     int exitCode = 0;
@@ -109,7 +105,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    sem_close(&mutex);
     return exitCode;
 }
 
