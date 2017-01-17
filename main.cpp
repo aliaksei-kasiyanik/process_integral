@@ -28,6 +28,11 @@ int main(int argc, char *argv[]) {
     int steps_per_process = STEP_COUNT / PROCESS_COUNT;
     int processes_with_additional_step = STEP_COUNT % PROCESS_COUNT;
 
+    sem_t sem;
+    if (sem_init(&sem, 1, 1) < 0) {
+        perror("sem_init");
+        return 1;
+    }
 
     int pipefds[2];
     if (pipe(pipefds) == -1) {
@@ -67,7 +72,9 @@ int main(int argc, char *argv[]) {
             double sum = calculate_trapezoid(proc_a, proc_b, STEP);
             printf("PART_SUM: %f\n", sum);
 
+            sem_wait(&sem);
             write(pipefds[1], &sum, sizeof(double));
+            sem_post(&sem);
 
             close(pipefds[1]);
 
@@ -92,8 +99,6 @@ int main(int argc, char *argv[]) {
 
     close(pipefds[0]);
 
-    printf("RESULT: %f\n", result);
-
     int exitCode = 0;
     int status;
     for (int i = 0; i < PROCESS_COUNT; ++i) {
@@ -104,6 +109,10 @@ int main(int argc, char *argv[]) {
             }
         }
     }
+
+    sem_close(&sem);
+
+    printf("RESULT: %f\n", result);
 
     return exitCode;
 }
